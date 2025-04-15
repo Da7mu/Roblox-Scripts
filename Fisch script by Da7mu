@@ -11,68 +11,58 @@ local function addRoundedCorners(instance, radius)
 	uiCorner.Parent = instance
 end
 
-local function addWhiteOutline(instance, thickness)
+local function addSubtleOutline(instance, thickness)
 	local uiStroke = Instance.new("UIStroke")
 	uiStroke.Thickness = thickness
-	uiStroke.Color = Color3.new(1, 1, 1)
+	uiStroke.Color = Color3.fromRGB(60, 60, 60)
 	uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	uiStroke.Transparency = 0.3
 	uiStroke.Parent = instance
 end
 
 -- Main Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 150)
-frame.Position = UDim2.new(0.35, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.new(0, 0, 0)
-frame.BackgroundTransparency = 0.4
+frame.Size = UDim2.new(0, 240, 0, 0)  -- Set height to 0 initially
+frame.Position = UDim2.new(0.5, -120, 0.5, -125)  -- Center the frame
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.05
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 addRoundedCorners(frame, 12)
-addWhiteOutline(frame, 2)
+addSubtleOutline(frame, 1)
 
--- Button Template
-local function createButton(name, position, parent)
+-- Button Factory (Styled)
+local function createButton(name, order)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0, 180, 0, 30)
-	button.Position = position
+	button.Size = UDim2.new(1, -24, 0, 32)  -- Full width with no gap
+	button.Position = UDim2.new(0, 12, 0, (order - 1) * 38 + 10)  -- Stacked vertically with space between
 	button.Text = name .. ": OFF"
-	button.TextScaled = true
-	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-	button.BackgroundTransparency = 0.2
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.SourceSansBold
-	button.Parent = parent
+	button.TextSize = 16
+	button.Font = Enum.Font.Gotham
+	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	button.BackgroundTransparency = 0.1
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.AutoButtonColor = false
+	button.Parent = frame
 	addRoundedCorners(button, 8)
-	addWhiteOutline(button, 2)
+	addSubtleOutline(button, 1)
 	return button
 end
 
--- Auto Farm Button
-local autoFarmBtn = createButton("Auto Farm", UDim2.new(0, 20, 0, 10), frame)
+-- Toggle Buttons
+local autoFarmBtn = createButton("Auto Farm", 1)
+local autoSellAllBtn = createButton("Auto Sell All", 2)
+local autoSellHoldingBtn = createButton("Auto Sell Holding", 3)
+local tpBtn = createButton("TP", 4)
+tpBtn.Text = "TP"  -- Set the text to just "TP"
 
--- Auto Sell Button
-local autoSellBtn = createButton("Auto Sell", UDim2.new(0, 20, 0, 50), frame)
+-- Adjust the frame size to fit all buttons
+frame.Size = UDim2.new(0, 240, 0, (4 * 38) + 20)  -- 4 buttons, each 38px tall + padding
 
--- TP Button
-local tpBtn = Instance.new("TextButton")
-tpBtn.Size = UDim2.new(0, 180, 0, 30)
-tpBtn.Position = UDim2.new(0, 20, 0, 90)
-tpBtn.Text = "TP"
-tpBtn.TextScaled = true
-tpBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-tpBtn.BackgroundTransparency = 0.2
-tpBtn.TextColor3 = Color3.new(1, 1, 1)
-tpBtn.Font = Enum.Font.SourceSansBold
-tpBtn.Parent = frame
-addRoundedCorners(tpBtn, 8)
-addWhiteOutline(tpBtn, 2)
-
--- Logic Variables
-local autoFarmOn = false
-local autoSellOn = false
-local runningFarm = false
-local runningSell = false
+-- State Variables
+local autoFarmOn, autoSellAllOn, autoSellHoldingOn = false, false, false
+local runningFarm, runningSellAll, runningSellHolding = false, false, false
 
 -- Auto Farm Logic
 autoFarmBtn.MouseButton1Click:Connect(function()
@@ -83,27 +73,16 @@ autoFarmBtn.MouseButton1Click:Connect(function()
 		runningFarm = true
 		task.spawn(function()
 			while autoFarmOn do
-				-- Script 1
-				local args1 = {
-					[1] = 100,
-					[2] = true
-				}
+				local args1 = { [1] = 100, [2] = true }
 				local event = game:GetService("ReplicatedStorage").events:FindFirstChild("reelfinished ")
-				if event then
-					event:FireServer(unpack(args1))
-				end
+				if event then event:FireServer(unpack(args1)) end
 
-				-- Script 2
-				local args2 = {
-					[1] = 97.3999999999999,
-					[2] = 1
-				}
-				local char = game:GetService("Players").LocalPlayer.Character
+				local args2 = { [1] = 97.4, [2] = 1 }
+				local char = game.Players.LocalPlayer.Character
 				local rod = char and char:FindFirstChild("Rod Of The Depths")
 				if rod and rod:FindFirstChild("events") and rod.events:FindFirstChild("cast") then
 					rod.events.cast:FireServer(unpack(args2))
 				end
-
 				task.wait(0.5)
 			end
 			runningFarm = false
@@ -111,27 +90,43 @@ autoFarmBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Auto Sell Logic
-autoSellBtn.MouseButton1Click:Connect(function()
-	autoSellOn = not autoSellOn
-	autoSellBtn.Text = "Auto Sell: " .. (autoSellOn and "ON" or "OFF")
+-- Auto Sell All Logic
+autoSellAllBtn.MouseButton1Click:Connect(function()
+	autoSellAllOn = not autoSellAllOn
+	autoSellAllBtn.Text = "Auto Sell All: " .. (autoSellAllOn and "ON" or "OFF")
 
-	if autoSellOn and not runningSell then
-		runningSell = true
+	if autoSellAllOn and not runningSellAll then
+		runningSellAll = true
 		task.spawn(function()
-			while autoSellOn do
-				local sellEvent = game:GetService("ReplicatedStorage").events:FindFirstChild("SellAll")
-				if sellEvent then
-					sellEvent:InvokeServer()
-				end
+			while autoSellAllOn do
+				local sellAll = game:GetService("ReplicatedStorage").events:FindFirstChild("SellAll")
+				if sellAll then sellAll:InvokeServer() end
 				task.wait(10)
 			end
-			runningSell = false
+			runningSellAll = false
 		end)
 	end
 end)
 
--- TP Button Logic
+-- Auto Sell Holding Logic
+autoSellHoldingBtn.MouseButton1Click:Connect(function()
+	autoSellHoldingOn = not autoSellHoldingOn
+	autoSellHoldingBtn.Text = "Auto Sell Holding: " .. (autoSellHoldingOn and "ON" or "OFF")
+
+	if autoSellHoldingOn and not runningSellHolding then
+		runningSellHolding = true
+		task.spawn(function()
+			while autoSellHoldingOn do
+				local sellOne = game:GetService("ReplicatedStorage").events:FindFirstChild("Sell")
+				if sellOne then sellOne:InvokeServer() end
+				task.wait(0.1)
+			end
+			runningSellHolding = false
+		end)
+	end
+end)
+
+-- TP Logic
 tpBtn.MouseButton1Click:Connect(function()
 	local TweenService = game:GetService("TweenService")
 	local Players = game:GetService("Players")
